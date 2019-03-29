@@ -77,36 +77,43 @@ if [[ ${ENCODE} == true ]]; then
     if [[ ${BYTE_ENCODE} = true ]]; then
         instream=""
         input=""
+
         # Read the input stream printing out each char/byte converted
-        while read instream; do
-            for i in $(seq 1 ${#instream}); do
-                # Get the decimal number of the character/byte
-                num="$(printf "%d" "'${instream:i-1:1}")"
+        instream=$(</dev/stdin)
+        for i in $(seq 1 ${#instream}); do
 
-                # Print that line of the file
-                printf "%s" "$(head -${num} ${S_WORDS} | tail -1)"
+            # Get the decimal number of the character/byte
+            num="$(printf "%d" "'${instream:i-1:1}")"
 
-                # Add the specified separator
-                if [[ "${i}" -lt "${#instream}" ]]; then
-                    printf "%s" "${SEP}"
-                fi
-            done
+            # Print that line of the file
+            printf "%s" "$(head -${num} ${S_WORDS} | tail -1)"
+
+            # Add the specified separator
+            if [[ "${i}" -lt "${#instream}" ]]; then
+                printf "%s" "${SEP}"
+            fi
         done
-        printf "\n"
+
+        # Manually print an ending newline character
+        # Temporary solution until a cleaner one is written
+        printf "${SEP}%s" "$(head -10 ${S_WORDS} | tail -1)"
+
     # Operate on each 16-bit word
     elif [[ ${WORD_ENCODE} = true ]]; then
         echo "16-bit encoding not implemented yet"
     else
         echo "Error: No valid encoding option given"
     fi
+
 # Decode the input
 else
     # Decode each word as 1 byte
     if [[ ${BYTE_ENCODE} = true ]]; then
         instream=""
         input=""
+        instream=$(</dev/stdin)
         # Read each input line
-        while read instream; do
+        #while read instream; do
             # Separate each line into an array of words and loop through it
             arr=( $instream )
             for i in $(seq 0 $((${#arr[@]} - 1))); do
@@ -121,7 +128,7 @@ else
                     printf "\x$(printf %x ${index})"
                 fi
             done
-        done
+        #done
     elif [[ ${WORD_ENCODE} = true ]]; then
         echo "16-bit decoding not implemented yet"
     fi
