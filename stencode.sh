@@ -62,6 +62,16 @@ while [[ $# -gt 0 ]]; do
             ENCODE=false
             shift
             ;;
+        -db|-bd)
+            ENCODE=false
+            BYTE_ENCODE=true
+            shift
+            ;;
+        -dw|-wd)
+            ENCODE=false
+            WORD_ENCODE=true
+            shift
+            ;;
         *)
             POSITIONAL+=("$1")
             shift
@@ -74,11 +84,8 @@ set -- "%{POSITIONAL[@]}"
 if [[ ${ENCODE} == true ]]; then
 
     # Operate only on each individual byte
-    if [[ ${BYTE_ENCODE} = true ]]; then
-        instream=""
-        input=""
-
-        # Read the input stream printing out each char/byte converted
+    if [[ ${BYTE_ENCODE} == true && ${WORD_ENCODE} == false ]]; then
+        # Read the input stream exactly, printing out each char/byte converted
         instream=$(</dev/stdin)
         for i in $(seq 1 ${#instream}); do
 
@@ -99,37 +106,38 @@ if [[ ${ENCODE} == true ]]; then
         printf "${SEP}%s" "$(head -10 ${S_WORDS} | tail -1)"
 
     # Operate on each 16-bit word
-    elif [[ ${WORD_ENCODE} = true ]]; then
+    elif [[ ${WORD_ENCODE} == true && ${BYTE_ENCODE} == false ]]; then
         echo "16-bit encoding not implemented yet"
+    elif [[ ${WORD_ENCODE} == true && ${BYTE_ENCODE} == true ]]; then
+        echo "Error: Only one encoding scheme may be used at a time"
     else
-        echo "Error: No valid encoding option given"
+        echo "Error: No valid encoding given"
     fi
 
 # Decode the input
 else
     # Decode each word as 1 byte
-    if [[ ${BYTE_ENCODE} = true ]]; then
-        instream=""
-        input=""
+    if [[ ${BYTE_ENCODE} == true && ${WORD_ENCODE} == false ]]; then
+        # Separate each line into an array of words and loop through it
         instream=$(</dev/stdin)
-        # Read each input line
-        #while read instream; do
-            # Separate each line into an array of words and loop through it
-            arr=( $instream )
-            for i in $(seq 0 $((${#arr[@]} - 1))); do
-                # Get the index of the word from the file
-                index="$(grep -En "^${arr[${i}]}$" "${S_WORDS}" | cut -d ':' -f1)"
+        arr=( $instream )
+        for i in $(seq 0 $((${#arr[@]} - 1))); do
+            # Get the index of the word from the file
+            index="$(grep -En "^${arr[${i}]}$" "${S_WORDS}" | cut -d ':' -f1)"
 
-                # Alert the user if a word couldn't be found in the word list
-                if [[ "${index}" == "" ]]; then
-                    printf "Error: could not decode word '%s'\n" "${arr[${i}]}"
-                # Otherwise print the ASCII character
-                else
-                    printf "\x$(printf %x ${index})"
-                fi
-            done
-        #done
-    elif [[ ${WORD_ENCODE} = true ]]; then
+            # Alert the user if a word couldn't be found in the word list
+            if [[ "${index}" == "" ]]; then
+                printf "Error: could not decode word '%s'\n" "${arr[${i}]}"
+            # Otherwise print the ASCII character
+            else
+                printf "\x$(printf %x ${index})"
+            fi
+        done
+    elif [[ ${WORD_ENCODE} == true && ${BYTE_ENCODE} == false ]]; then
         echo "16-bit decoding not implemented yet"
+    elif [[ ${WORD_ENCODE} == true && ${BYTE_ENCODE} == true ]]; then
+        echo "Error: Only one encoding scheme may be used at a time"
+    else
+        echo "Error: No valid encoding scheme given"
     fi
 fi
